@@ -1,12 +1,15 @@
 import { MongoClient } from 'mongodb';
 
-let client;
+let db;
 
-export const initializeDbConnection = async () => {
-    client = await MongoClient.connect('mongodb://localhost:27017');
+const connectToDb = async (cb) => {
+    const client = new MongoClient('mongodb://127.0.0.1:27017');
+    await client.connect();
+    db = client.db('swiftCloudDB');
+    cb();
 }
 
-export const getDbConnection = dbName => {
-    const db = client.db(dbName);
-    return db;
+export {
+    db, 
+    connectToDb
 }

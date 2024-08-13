@@ -1,6 +1,6 @@
 import express from 'express';
 import { routes } from './routes/index.js';
-import { initializeDbConnection } from './db.js';
+import { connectToDb } from './db.js';
 
 const PORT = process.env.PORT || 8080;
 
@@ -19,9 +19,9 @@ routes.forEach(route => {
 // Connect to the database, then start the server.
 // This prevents us from having to create a new DB
 // connection for every request.
-initializeDbConnection()
-    .then(() => {
-        app.listen(PORT, () => {
-            console.log(`Server is listening on port ${PORT}`);
-        });
+connectToDb(() => {
+    console.log('Successfully connected to database!');
+    app.listen(PORT, () => {
+        console.log(`Server is listening on port ${PORT}`);
     });
+})
