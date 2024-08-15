@@ -1,27 +1,23 @@
 import { db } from '../db.js';
 import { ObjectId } from 'mongodb';
 
-export const putSongRoute = {
-    path: '/api/v1.0/songs/:id',
+export const putSongPlaysRoute = {
+    path: '/api/v1.0/songs/:id/month',
     method: 'put',
     handler: async (req, res) => {
         try {
             const { id } = req.params;
-            const { song, artist, writer, album, year} = req.body;
+            const { month } = req.body;
 
-            if (song && artist && writer && album && Number.isInteger(parseInt(year))) {
-                const result = await db.collection('songs').findOneAndUpdate(
+            if (month === 'June' || month === 'July' || month === 'August')  {
+                const { modifiedCount } = await db.collection('songs').updateOne(
                     { _id: ObjectId.createFromHexString(id)},
-                    { $set: {
-                        Song: song, 
-                        Artist: artist,
-                        Writer: writer, 
-                        Album: album, 
-                        Year: year
+                    { $inc: {
+                        [`Plays - ${month}`]: 1
                     }}
                 );
 
-                if (result) {
+                if (modifiedCount) {
                     return res.status(200).json({ id })
                 }
 

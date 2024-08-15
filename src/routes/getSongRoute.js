@@ -2,7 +2,7 @@ import { db } from '../db.js';
 import { ObjectId } from 'mongodb';
 
 export const getSongRoute = {
-    path: '/api/songs/:id',
+    path: '/api/v1.0/songs/:id',
     method: 'get',
     handler: async (req, res) => {
         try {

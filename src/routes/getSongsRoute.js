@@ -1,10 +1,10 @@
 import { db } from '../db.js';
 
 export const getSongsRoute = {
-    path: '/api/songs',
+    path: '/api/v1.0/songs',
     method: 'get',
     handler: async (req, res) => {
-        const { artist, writer, album, year, pn, ps, sort } = req.query;
+        const { artist, writer, album, year, startYear, endYear, pn, ps, sort } = req.query;
 
         if (artist) {
             const regex = new RegExp(artist, 'i')
@@ -77,28 +77,49 @@ export const getSongsRoute = {
             { $limit: pageSize}
         ];
 
+        if (startYear && endYear) {
+            const query = { $match: { Year: {$lte: parseInt(endYear), $gte: parseInt(startYear) }}}
+            const filterByYearPipeline = [query, ...pagination]
+            const songsByYearRange = await db.collection('songs').aggregate(filterByYearPipeline);
+            const filteredSongs = await songsByYearRange.toArray();
+
+            if (filteredSongs.length) {
+                return res.json(filteredSongs);
+            }
+
+            else {
+                return res.status(404).json({ message: `No songs between ${startYear} and ${endYear}` });
+            }
+        }
+
         if (sort) {
             if (sort === 'June' || sort === 'July' || sort === 'August') {
-                const monthSort = { $sort: { [`Plays - ${sort}`]: -1}};
-                const sortedAgg = [monthSort, ...pagination];
-                const allSongsByMonth = await db.collection('songs').aggregate(sortedAgg);
-                const songsSortedByMonth = await allSongsByMonth.toArray(); 
-                return res.json(songsSortedByMonth);
+                const filterMonthPipeline = [
+                    { $project: { 
+                        Song: 1, 
+                        Artist: 1, 
+                        [`Plays - ${sort}`]: 1 
+                    }}, {
+                        $sort: { [`Plays - ${sort}`]: -1}
+                    }, ...pagination
+                ];
+                
+                const allSongsByMonth = await db.collection('songs').aggregate(filterMonthPipeline);
+                const songsPopularByMonth = await allSongsByMonth.toArray(); 
+                return res.json(songsPopularByMonth);
             } 
             else if (sort === 'All') {
-                const pipeline = [
+                const filterAllPipeline = [
                     { $project: { 
-                            Song: 1, 
-                            Artist: 1,
-                            Album: 1, 
-                            Total_Plays: { $add: ["$Plays - June", "$Plays - July", "$Plays - August" ] }
-                        }
-                    }, {
+                        Song: 1, 
+                        Artist: 1,
+                        Total_Plays: { $add: ["$Plays - June", "$Plays - July", "$Plays - August" ] }
+                    }}, {
                         $sort: { Total_Plays: -1 }
                     }, ...pagination
                 ];
 
-                const popularSongs = await db.collection('songs').aggregate(pipeline);
+                const popularSongs = await db.collection('songs').aggregate(filterAllPipeline);
                 const songsWithMostPlays = await popularSongs.toArray();
                 return res.json(songsWithMostPlays);
             }

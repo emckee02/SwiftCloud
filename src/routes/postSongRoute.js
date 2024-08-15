@@ -1,7 +1,7 @@
 import { db } from '../db.js';
 
 export const postSongRoute = {
-    path: '/api/songs',
+    path: '/api/v1.0/songs',
     method: 'post',
     handler: async (req, res) => {
         const { song, artist, writer, album, year } = req.body;
@@ -19,8 +19,8 @@ export const postSongRoute = {
             });
 
             const { insertedId } = result;
-            const url = `http://localhost:8080/api/songs/${insertedId.toString()}`;
-            res.status(201).json({ url });
+            const id = insertedId.toString();
+            res.status(201).json({ id });
         } 
         else {
             res.status(404).json({ message: 'Missing or invalid form data'});
