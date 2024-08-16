@@ -11,8 +11,9 @@ export const getSongRoute = {
 
             if (song) {
                 res.json(song);
-            } else {
-                res.status(404).json({ message: 'Invalid song ID' });
+            } 
+            else {
+                res.status(404).json({ message: 'Invalid song ID'});
             }
         } catch(e) {
             res.status(404).json({ message: 'Invalid song ID'});

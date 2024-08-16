@@ -7,7 +7,7 @@ export const putSongRoute = {
     handler: async (req, res) => {
         try {
             const { id } = req.params;
-            const { song, artist, writer, album, year} = req.body;
+            const { song, artist, writer, album, year } = req.body;
 
             if (song && artist && writer && album && Number.isInteger(parseInt(year))) {
                 const result = await db.collection('songs').findOneAndUpdate(
@@ -22,7 +22,7 @@ export const putSongRoute = {
                 );
 
                 if (result) {
-                    return res.status(200).json({ id })
+                    return res.status(200).json({ id });
                 }
 
                 res.status(404).json({ message: 'Invalid song ID'});

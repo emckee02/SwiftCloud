@@ -1,65 +1,11 @@
 import { db } from '../db.js';
+import { isValidMonth } from '../util.js';
 
 export const getSongsRoute = {
     path: '/api/v1.0/songs',
     method: 'get',
     handler: async (req, res) => {
         const { artist, writer, album, year, startYear, endYear, pn, ps, sort } = req.query;
-
-        if (artist) {
-            const regex = new RegExp(artist, 'i')
-            const songsByArtist = await db.collection('songs').find({ Artist: regex });
-            const allSongsByArtist = await songsByArtist.toArray();
-
-            if (allSongsByArtist.length) {
-                return res.json(allSongsByArtist);
-            }
-
-            else {
-                return res.status(404).json({ message: `No songs from the artist ${artist}`})
-            }
-        }
-
-        if (writer) {
-            const regex = new RegExp(writer, 'i')
-            const songsByWriter = await db.collection('songs').find({ Writer: regex });
-            const allSongsByWriter = await songsByWriter.toArray();
-
-            if (allSongsByWriter.length) {
-                return res.json(allSongsByWriter);
-            }
-
-            else {
-                return res.status(404).json({ message: `No songs from the writer ${writer}` });
-            }
-        }
-
-        if (album) {
-            const songsByAlbum = await db.collection('songs').find({ Album: album });
-            const allSongsByAlbum = await songsByAlbum.toArray();
-            
-            if (allSongsByAlbum.length) {
-                return res.json(allSongsByAlbum);
-            }
-
-            else {
-                return res.status(404).json({ message: `No songs from the album ${album}` });
-            }
-        }
-
-        if (year) {
-            const songsByYear = await db.collection('songs').find({ Year: parseInt(year) });
-            const allSongsByYear = await songsByYear.toArray();
-            
-            if (allSongsByYear.length) {
-                return res.json(allSongsByYear);
-            }
-
-            else {
-                return res.status(404).json({ message: `No songs from the year ${year}` });
-            }
-        }
-
         let pageNum = 1;
         let pageSize = 10;
 
@@ -72,56 +18,106 @@ export const getSongsRoute = {
         }
 
         const pageStart = (pageSize * (pageNum - 1));
-        const pagination = [
-            { $skip: pageStart },
-            { $limit: pageSize}
-        ];
+        const pagination = [{ $skip: pageStart }, { $limit: pageSize }];
+
+        if (artist) {
+            const artistRegex = new RegExp(artist, 'i');
+            const songsByArtistCursor = await db.collection('songs').find({ Artist: artistRegex });
+            const songsByArtist = await songsByArtistCursor.toArray();
+
+            if (songsByArtist.length) {
+                return res.json(songsByArtist);
+            }
+            else {
+                return res.status(404).json({ message: `No songs from the artist ${artist}`})
+            }
+        }
+
+        if (writer) {
+            const writerRegex = new RegExp(writer, 'i');
+            const songsByWriterCursor = await db.collection('songs').find({ Writer: writerRegex });
+            const songsByWriter = await songsByWriterCursor.toArray();
+
+            if (songsByWriter.length) {
+                return res.json(songsByWriter);
+            }
+            else {
+                return res.status(404).json({ message: `No songs from the writer ${writer}` });
+            }
+        }
+
+        if (album) {
+            const songsByAlbumCursor = await db.collection('songs').find({ Album: album });
+            const songsByAlbum = await songsByAlbumCursor.toArray();
+            
+            if (songsByAlbum.length) {
+                return res.json(songsByAlbum);
+            }
+            else {
+                return res.status(404).json({ message: `No songs from the album ${album}` });
+            }
+        }
+
+        if (year) {
+            const songsByYearCursor = await db.collection('songs').find({ Year: parseInt(year) });
+            const songsByYear = await songsByYearCursor.toArray();
+            
+            if (songsByYear.length) {
+                return res.json(songsByYear);
+            }
+            else {
+                return res.status(404).json({ message: `No songs from the year ${year}` });
+            }
+        }
 
         if (startYear && endYear) {
-            const query = { $match: { Year: {$lte: parseInt(endYear), $gte: parseInt(startYear) }}}
-            const filterByYearPipeline = [query, ...pagination]
-            const songsByYearRange = await db.collection('songs').aggregate(filterByYearPipeline);
-            const filteredSongs = await songsByYearRange.toArray();
+            const yearRangeQuery = { $match: { Year: {$lte: parseInt(endYear), $gte: parseInt(startYear) }}};
+            const filterByYearPipeline = [yearRangeQuery, ...pagination];
+            const songsByYearRangeCursor = await db.collection('songs').aggregate(filterByYearPipeline);
+            const songsByYearRange = await songsByYearRangeCursor.toArray();
 
-            if (filteredSongs.length) {
-                return res.json(filteredSongs);
+            if (songsByYearRange.length) {
+                return res.json(songsByYearRange);
             }
-
             else {
                 return res.status(404).json({ message: `No songs between ${startYear} and ${endYear}` });
             }
         }
 
         if (sort) {
-            if (sort === 'June' || sort === 'July' || sort === 'August') {
-                const filterMonthPipeline = [
+            if (isValidMonth(sort)) {
+                const sortMonthPipeline = [
                     { $project: { 
-                        Song: 1, 
-                        Artist: 1, 
-                        [`Plays - ${sort}`]: 1 
-                    }}, {
+                            Song: 1, 
+                            Artist: 1, 
+                            [`Plays - ${sort}`]: 1 
+                        }
+                    }, {
                         $sort: { [`Plays - ${sort}`]: -1}
-                    }, ...pagination
+                    }, 
+                    ...pagination
                 ];
-                
-                const allSongsByMonth = await db.collection('songs').aggregate(filterMonthPipeline);
-                const songsPopularByMonth = await allSongsByMonth.toArray(); 
+
+                const songsPopularByMonthCursor = await db.collection('songs').aggregate(sortMonthPipeline);
+                const songsPopularByMonth = await songsPopularByMonthCursor.toArray(); 
                 return res.json(songsPopularByMonth);
             } 
             else if (sort === 'All') {
-                const filterAllPipeline = [
+                const sortAllMonthsPipeline = [
                     { $project: { 
-                        Song: 1, 
-                        Artist: 1,
-                        Total_Plays: { $add: ["$Plays - June", "$Plays - July", "$Plays - August" ] }
-                    }}, {
-                        $sort: { Total_Plays: -1 }
-                    }, ...pagination
+                            Song: 1, 
+                            Artist: 1,
+                            TotalPlays: { $add: ["$Plays - June", "$Plays - July", "$Plays - August" ] }
+                        }
+                    }, { 
+                        $sort: { TotalPlays: -1 }
+                    }, 
+                    ...pagination
                 ];
 
-                const popularSongs = await db.collection('songs').aggregate(filterAllPipeline);
-                const songsWithMostPlays = await popularSongs.toArray();
-                return res.json(songsWithMostPlays);
+                const mostPopularSongsCursor = await db.collection('songs').aggregate(sortAllMonthsPipeline);
+                const mostPopularSongs = await mostPopularSongsCursor.toArray();
+                return res.json(mostPopularSongs);
             }
             else {
                 return res.status(404).json({ message: 'Sort parameter invalid' });
@@ -129,9 +125,9 @@ export const getSongsRoute = {
         }
 
         const sortSongAsc = { $sort: { Song: 1 }};
-        const defaultAgg = [sortSongAsc, ...pagination];
-        const allSongsByTitle = await db.collection('songs').aggregate(defaultAgg);
-        const songsSortedByTitle = await allSongsByTitle.toArray();
+        const defaultPipeline = [sortSongAsc, ...pagination];
+        const allSongsCursor = await db.collection('songs').aggregate(defaultPipeline);
+        const songsSortedByTitle = await allSongsCursor.toArray();
         res.json(songsSortedByTitle);
     },
 };

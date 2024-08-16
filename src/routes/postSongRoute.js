@@ -7,7 +7,7 @@ export const postSongRoute = {
         const { song, artist, writer, album, year } = req.body;
 
         if (song && artist && writer && album && Number.isInteger(parseInt(year))) {
-            const result = await db.collection('songs').insertOne({ 
+            const { insertedId } = await db.collection('songs').insertOne({ 
                 Song: song,
                 Artist: artist,
                 Writer: writer,
@@ -18,7 +18,6 @@ export const postSongRoute = {
                 'Plays - August': 0,
             });
 
-            const { insertedId } = result;
             const id = insertedId.toString();
             res.status(201).json({ id });
         } 

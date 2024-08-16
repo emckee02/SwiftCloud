@@ -11,7 +11,8 @@ export const deleteSongRoute = {
 
             if (result.deletedCount === 1) {
                 res.status(204).json({});
-            } else {
+            } 
+            else {
                 res.status(404).json({ message: 'Invalid song ID'});
             }
 
