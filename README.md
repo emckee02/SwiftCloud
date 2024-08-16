@@ -18,6 +18,7 @@ API documentation accessible at https://documenter.getpostman.com/view/30249532/
 1. Enable users to create a user account so they can login and add reviews to specific songs. Store user data in a different MongoDB collection called 'users'. Users would have to send JWT along with requests to endpoints that require authentication. 
 2. Allow users to fetch songs that have the best reviews.
 3. Allow users to create a playlist of their favourite songs (add and delete functionality).
+4. Use the Mongoose library instead of MongoClient. Mongoose has the added benefit of providing a schema-based solution for defining the structure of the documents in the MongoDB collection. The structured nature of Mongoose schemas ensures data consistency and validation.
 
 ## Author
 Elliott McKee
